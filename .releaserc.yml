@@ -1,6 +1,8 @@
 verifyConditions:
   - "@semantic-release/github"
 
+tagFormat: "FizzySteamworks-${version}"
+
 plugins:
   - - '@semantic-release/commit-analyzer'
     - preset: "angular"
