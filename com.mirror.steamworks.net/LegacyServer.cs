@@ -8,7 +8,7 @@ namespace Mirror.FizzySteam
 {
     public class LegacyServer : LegacyCommon, IServer
     {
-        private event Action<int> OnConnected;
+        private event Action<int,String> OnConnectedWithAddress;
         private event Action<int, byte[], int> OnReceivedData;
         private event Action<int> OnDisconnected;
         private event Action<int, TransportError, string> OnReceivedError;
@@ -17,14 +17,16 @@ namespace Mirror.FizzySteam
         private int maxConnections;
         private int nextConnectionID;
 
+        private static LegacyServer server;
+
         public static LegacyServer CreateServer(FizzySteamworks transport, int maxConnections)
         {
-            LegacyServer s = new LegacyServer(transport, maxConnections);
-
-            s.OnConnected += (id) => transport.OnServerConnected.Invoke(id);
-            s.OnDisconnected += (id) => transport.OnServerDisconnected.Invoke(id);
-            s.OnReceivedData += (id, data, channel) => transport.OnServerDataReceived.Invoke(id, new ArraySegment<byte>(data), channel);
-            s.OnReceivedError += (id, error, reason) => transport.OnServerError.Invoke(id, error, reason);
+            server = new LegacyServer(transport, maxConnections);
+            
+            server.OnConnectedWithAddress += (id,addres) => transport.OnServerConnectedWithAddress.Invoke(id,addres);
+            server.OnDisconnected += (id) => transport.OnServerDisconnected.Invoke(id);
+            server.OnReceivedData += (id, data, channel) => transport.OnServerDataReceived.Invoke(id, new ArraySegment<byte>(data), channel);
+            server.OnReceivedError += (id, error, reason) => transport.OnServerError.Invoke(id, error, reason);
 
             try
             {
@@ -39,7 +41,7 @@ namespace Mirror.FizzySteam
                 Debug.LogError("SteamWorks not initialized.");
             }
 
-            return s;
+            return server;
         }
 
         private LegacyServer(FizzySteamworks transport, int maxConnections) : base(transport)
@@ -81,7 +83,7 @@ namespace Mirror.FizzySteam
 
                     int connectionId = nextConnectionID++;
                     steamToMirrorIds.Add(clientSteamID, connectionId);
-                    OnConnected.Invoke(connectionId);
+                    OnConnectedWithAddress.Invoke(connectionId,server.ServerGetClientAddress(connectionId));
                     Debug.Log($"Client with SteamID {clientSteamID} connected. Assigning connection id {connectionId}");
                     break;
                 case InternalMessages.DISCONNECT:
@@ -115,11 +117,11 @@ namespace Mirror.FizzySteam
                     OnReceivedError.Invoke(-1, TransportError.DnsResolve, "ERROR Unknown SteamID");
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"Error while recive data {ex.Message}");
                 Shutdown();
-            }         
+            }
         }
 
         public void Disconnect(int connectionId)

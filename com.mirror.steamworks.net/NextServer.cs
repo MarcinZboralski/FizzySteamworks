@@ -8,7 +8,7 @@ namespace Mirror.FizzySteam
 {
     public class NextServer : NextCommon, IServer
     {
-        private event Action<int> OnConnected;
+        private event Action<int,string> OnConnectedWithAddress;
         private event Action<int, byte[], int> OnReceivedData;
         private event Action<int> OnDisconnected;
         private event Action<int, TransportError, string> OnReceivedError;
@@ -21,6 +21,8 @@ namespace Mirror.FizzySteam
         private HSteamListenSocket listenSocket;
 
         private Callback<SteamNetConnectionStatusChangedCallback_t> c_onConnectionChange = null;
+
+        private static NextServer server;
         private NextServer(int maxConnections)
         {
             this.maxConnections = maxConnections;
@@ -32,12 +34,12 @@ namespace Mirror.FizzySteam
 
         public static NextServer CreateServer(FizzySteamworks transport, int maxConnections)
         {
-            NextServer s = new NextServer(maxConnections);
+            server = new NextServer(maxConnections);
 
-            s.OnConnected += (id) => transport.OnServerConnected.Invoke(id);
-            s.OnDisconnected += (id) => transport.OnServerDisconnected.Invoke(id);
-            s.OnReceivedData += (id, data, ch) => transport.OnServerDataReceived.Invoke(id, new ArraySegment<byte>(data), ch);
-            s.OnReceivedError += (id, error, reason) => transport.OnServerError.Invoke(id, error, reason);
+            server.OnConnectedWithAddress += (id,addres) => transport.OnServerConnectedWithAddress.Invoke(id,addres);
+            server.OnDisconnected += (id) => transport.OnServerDisconnected.Invoke(id);
+            server.OnReceivedData += (id, data, ch) => transport.OnServerDataReceived.Invoke(id, new ArraySegment<byte>(data), ch);
+            server.OnReceivedError += (id, error, reason) => transport.OnServerError.Invoke(id, error, reason);
 
             try
             {
@@ -52,9 +54,9 @@ namespace Mirror.FizzySteam
                 Debug.LogException(ex);
             }
 
-            s.Host();
+            server.Host();
 
-            return s;
+            return server;
         }
 
         private void Host()
@@ -103,7 +105,7 @@ namespace Mirror.FizzySteam
                 int connectionId = nextConnectionID++;
                 connToMirrorID.Add(param.m_hConn, connectionId);
                 steamIDToMirrorID.Add(param.m_info.m_identityRemote.GetSteamID(), connectionId);
-                OnConnected?.Invoke(connectionId);
+                OnConnectedWithAddress?.Invoke(connectionId,server.ServerGetClientAddress(connectionId));
                 Debug.Log($"Client with SteamID {clientSteamID} connected. Assigning connection id {connectionId}");
             }
             else if (param.m_info.m_eState == ESteamNetworkingConnectionState.k_ESteamNetworkingConnectionState_ClosedByPeer || param.m_info.m_eState == ESteamNetworkingConnectionState.k_ESteamNetworkingConnectionState_ProblemDetectedLocally)
