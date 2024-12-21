@@ -304,17 +304,6 @@ namespace Mirror.FizzySteam
                 Debug.LogError($"Failed to initialize relay network access: {ex.Message}");
             }
         }
-
-
-        private void OnDestroy()
-        {
-            Shutdown();
-        }
-
-        public override void OnApplicationQuit()
-        {
-            Shutdown();
-        }
     }
 }
 #endif // !DISABLESTEAMWORKS
