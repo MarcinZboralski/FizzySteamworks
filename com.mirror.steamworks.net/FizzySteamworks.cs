@@ -13,12 +13,8 @@ namespace Mirror.FizzySteam
         private static IClient client;
         private static IServer server;
 
-
         [Tooltip("Timeout for connecting in seconds.")]
         public int Timeout = 25;
-        [Tooltip("Allow or disallow P2P connections to fall back to being relayed through the Steam servers if a direct connection or NAT-traversal cannot be established.")]
-        public bool AllowSteamRelay = true;
-
 
         private void OnEnable()
         {
