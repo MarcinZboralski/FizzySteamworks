@@ -26,6 +26,8 @@ namespace Mirror.FizzySteam
         private HSteamNetConnection HostConnection;
         private List<Action> BufferedData;
 
+        private readonly IntPtr[] messagePtrs = new IntPtr[MAX_MESSAGES];
+
         private NextClient(FizzySteamworks transport)
         {
             ConnectionTimeout = TimeSpan.FromSeconds(Math.Max(1, transport.Timeout));
@@ -194,14 +196,18 @@ namespace Mirror.FizzySteam
 
         public void ReceiveData()
         {
-            IntPtr[] ptrs = new IntPtr[MAX_MESSAGES];
-            int messageCount;
+            // This is probably unnessary
+            for (int i = 0; i < MAX_MESSAGES; i++)
+            {
+                messagePtrs[i] = IntPtr.Zero;
+            }
 
-            if ((messageCount = SteamNetworkingSockets.ReceiveMessagesOnConnection(HostConnection, ptrs, MAX_MESSAGES)) > 0)
+            int messageCount;
+            if ((messageCount = SteamNetworkingSockets.ReceiveMessagesOnConnection(HostConnection, messagePtrs, MAX_MESSAGES)) > 0)
             {
                 for (int i = 0; i < messageCount; i++)
                 {
-                    (byte[] data, int ch) = ProcessMessage(ptrs[i]);
+                    (byte[] data, int ch) = ProcessMessage(messagePtrs[i]);
                     if (Connected)
                     {
                         OnReceivedData(data, ch);

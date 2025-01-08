@@ -22,6 +22,8 @@ namespace Mirror.FizzySteam
 
         private Callback<SteamNetConnectionStatusChangedCallback_t> c_onConnectionChange = null;
 
+        private readonly IntPtr[] messagePtrs = new IntPtr[MAX_MESSAGES];
+
         private static NextServer server;
         private NextServer(int maxConnections)
         {
@@ -176,18 +178,22 @@ namespace Mirror.FizzySteam
             {
                 if (connToMirrorID.TryGetValue(conn, out int connId))
                 {
-                    IntPtr[] ptrs = new IntPtr[MAX_MESSAGES];
-                    int messageCount;
+                    // This is probably unnessary
+                    for (int i = 0; i < MAX_MESSAGES; i++)
+                    {
+                        messagePtrs[i] = IntPtr.Zero;
+                    }
 
+                    int messageCount;
 #if UNITY_SERVER
                     if ((messageCount = SteamGameServerNetworkingSockets.ReceiveMessagesOnConnection(conn, ptrs, MAX_MESSAGES)) > 0)
 #else
-                    if ((messageCount = SteamNetworkingSockets.ReceiveMessagesOnConnection(conn, ptrs, MAX_MESSAGES)) > 0)
+                    if ((messageCount = SteamNetworkingSockets.ReceiveMessagesOnConnection(conn, messagePtrs, MAX_MESSAGES)) > 0)
 #endif
                     {
                         for (int i = 0; i < messageCount; i++)
                         {
-                            (byte[] data, int ch) = ProcessMessage(ptrs[i]);
+                            (byte[] data, int ch) = ProcessMessage(messagePtrs[i]);
                             OnReceivedData?.Invoke(connId, data, ch);
                         }
                     }
