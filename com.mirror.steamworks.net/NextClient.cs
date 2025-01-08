@@ -173,13 +173,15 @@ namespace Mirror.FizzySteam
             }
         }
 
-        protected void Dispose()
+        public override void Dispose()
         {
             if (c_onConnectionChange != null)
             {
                 c_onConnectionChange.Dispose();
                 c_onConnectionChange = null;
             }
+
+            base.Dispose();
         }
 
         private void InternalDisconnect()

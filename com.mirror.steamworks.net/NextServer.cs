@@ -242,6 +242,13 @@ namespace Mirror.FizzySteam
 
             c_onConnectionChange?.Dispose();
             c_onConnectionChange = null;
+
+            Dispose();
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
         }
     }
 }
