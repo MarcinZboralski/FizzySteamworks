@@ -1,7 +1,7 @@
 #if !DISABLESTEAMWORKS
-using Steamworks;
 using System;
 using System.Runtime.InteropServices;
+using Steamworks;
 using UnityEngine;
 
 namespace Mirror.FizzySteam
@@ -10,8 +10,11 @@ namespace Mirror.FizzySteam
     {
         protected const int MAX_MESSAGES = 256;
 
-        protected EResult SendSocket(HSteamNetConnection conn, byte[] data, int channelId)
+        protected EResult SendSocket(HSteamNetConnection conn, ArraySegment<byte> segment, int channelId)
         {
+            byte[] data = new byte[segment.Count];
+            Array.Copy(segment.Array, segment.Offset, data, 0, segment.Count);
+
             Array.Resize(ref data, data.Length + 1);
             data[data.Length - 1] = (byte)channelId;
 

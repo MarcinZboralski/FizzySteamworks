@@ -1,14 +1,14 @@
 #if !DISABLESTEAMWORKS
-using Steamworks;
 using System;
 using System.Linq;
+using Steamworks;
 using UnityEngine;
 
 namespace Mirror.FizzySteam
 {
     public class NextServer : NextCommon, IServer
     {
-        private event Action<int,string> OnConnectedWithAddress;
+        private event Action<int, string> OnConnectedWithAddress;
         private event Action<int, byte[], int> OnReceivedData;
         private event Action<int> OnDisconnected;
         private event Action<int, TransportError, string> OnReceivedError;
@@ -40,7 +40,7 @@ namespace Mirror.FizzySteam
         {
             server = new NextServer(maxConnections);
 
-            server.OnConnectedWithAddress += (id,addres) => transport.OnServerConnectedWithAddress.Invoke(id,addres);
+            server.OnConnectedWithAddress += (id, addres) => transport.OnServerConnectedWithAddress.Invoke(id, addres);
             server.OnDisconnected += (id) => transport.OnServerDisconnected.Invoke(id);
             server.OnReceivedData += (id, data, ch) => transport.OnServerDataReceived.Invoke(id, new ArraySegment<byte>(data), ch);
             server.OnReceivedError += (id, error, reason) => transport.OnServerError.Invoke(id, error, reason);
@@ -109,7 +109,7 @@ namespace Mirror.FizzySteam
                 int connectionId = nextConnectionID++;
                 connToMirrorID.Add(param.m_hConn, connectionId);
                 steamIDToMirrorID.Add(param.m_info.m_identityRemote.GetSteamID(), connectionId);
-                OnConnectedWithAddress?.Invoke(connectionId,server.ServerGetClientAddress(connectionId));
+                OnConnectedWithAddress?.Invoke(connectionId, server.ServerGetClientAddress(connectionId));
                 Debug.Log($"Client with SteamID {clientSteamID} connected. Assigning connection id {connectionId}");
             }
             else if (param.m_info.m_eState == ESteamNetworkingConnectionState.k_ESteamNetworkingConnectionState_ClosedByPeer || param.m_info.m_eState == ESteamNetworkingConnectionState.k_ESteamNetworkingConnectionState_ProblemDetectedLocally)
@@ -195,11 +195,11 @@ namespace Mirror.FizzySteam
             }
         }
 
-        public void Send(int connectionId, byte[] data, int channelId)
+        public void Send(int connectionId, ArraySegment<byte> segment, int channelId)
         {
             if (connToMirrorID.TryGetValue(connectionId, out HSteamNetConnection conn))
             {
-                EResult res = SendSocket(conn, data, channelId);
+                EResult res = SendSocket(conn, segment, channelId);
 
                 if (res == EResult.k_EResultNoConnection || res == EResult.k_EResultInvalidParam)
                 {

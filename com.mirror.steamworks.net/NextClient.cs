@@ -1,9 +1,9 @@
 #if !DISABLESTEAMWORKS
-using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Steamworks;
 using UnityEngine;
 
 namespace Mirror.FizzySteam
@@ -212,11 +212,11 @@ namespace Mirror.FizzySteam
             }
         }
 
-        public void Send(byte[] data, int channelId)
+        public void Send(ArraySegment<byte> segment, int channelId)
         {
             try
             {
-                EResult res = SendSocket(HostConnection, data, channelId);
+                EResult res = SendSocket(HostConnection, segment, channelId);
 
                 if (res == EResult.k_EResultNoConnection || res == EResult.k_EResultInvalidParam)
                 {

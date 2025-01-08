@@ -1,8 +1,8 @@
 ﻿#if !DISABLESTEAMWORKS
-using Steamworks;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Steamworks;
 using UnityEngine;
 
 namespace Mirror.FizzySteam
@@ -45,13 +45,13 @@ namespace Mirror.FizzySteam
 #endif
                 c.Connect(host);
             }
-            catch(FormatException)
+            catch (FormatException)
             {
                 Debug.LogError($"Connection string was not in the right format. Did you enter a SteamId?");
                 c.Error = true;
                 c.OnConnectionFailed(CSteamID.Nil);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"Unexpected exception: {ex.Message}");
                 c.Error = true;
@@ -176,7 +176,12 @@ namespace Mirror.FizzySteam
             }
         }
 
-        public void Send(byte[] data, int channelId) => Send(hostSteamID, data, channelId);
+        public void Send(ArraySegment<byte> segment, int channelId)
+        {
+            byte[] data = new byte[segment.Count];
+            Array.Copy(segment.Array, segment.Offset, data, 0, segment.Count);
+            Send(hostSteamID, data, channelId);
+        }
 
         protected override void OnConnectionFailed(CSteamID remoteId) => OnDisconnected.Invoke();
         public void FlushData() { }

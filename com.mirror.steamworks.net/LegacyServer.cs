@@ -1,14 +1,14 @@
 ﻿#if !DISABLESTEAMWORKS
-using Steamworks;
 using System;
 using System.Collections.Generic;
+using Steamworks;
 using UnityEngine;
 
 namespace Mirror.FizzySteam
 {
     public class LegacyServer : LegacyCommon, IServer
     {
-        private event Action<int,String> OnConnectedWithAddress;
+        private event Action<int, String> OnConnectedWithAddress;
         private event Action<int, byte[], int> OnReceivedData;
         private event Action<int> OnDisconnected;
         private event Action<int, TransportError, string> OnReceivedError;
@@ -22,8 +22,8 @@ namespace Mirror.FizzySteam
         public static LegacyServer CreateServer(FizzySteamworks transport, int maxConnections)
         {
             server = new LegacyServer(transport, maxConnections);
-            
-            server.OnConnectedWithAddress += (id,addres) => transport.OnServerConnectedWithAddress.Invoke(id,addres);
+
+            server.OnConnectedWithAddress += (id, addres) => transport.OnServerConnectedWithAddress.Invoke(id, addres);
             server.OnDisconnected += (id) => transport.OnServerDisconnected.Invoke(id);
             server.OnReceivedData += (id, data, channel) => transport.OnServerDataReceived.Invoke(id, new ArraySegment<byte>(data), channel);
             server.OnReceivedError += (id, error, reason) => transport.OnServerError.Invoke(id, error, reason);
@@ -83,7 +83,7 @@ namespace Mirror.FizzySteam
 
                     int connectionId = nextConnectionID++;
                     steamToMirrorIds.Add(clientSteamID, connectionId);
-                    OnConnectedWithAddress.Invoke(connectionId,server.ServerGetClientAddress(connectionId));
+                    OnConnectedWithAddress.Invoke(connectionId, server.ServerGetClientAddress(connectionId));
                     Debug.Log($"Client with SteamID {clientSteamID} connected. Assigning connection id {connectionId}");
                     break;
                 case InternalMessages.DISCONNECT:
@@ -148,10 +148,12 @@ namespace Mirror.FizzySteam
             Dispose();
         }
 
-        public void Send(int connectionId, byte[] data, int channelId)
+        public void Send(int connectionId, ArraySegment<byte> segment, int channelId)
         {
             if (steamToMirrorIds.TryGetValue(connectionId, out CSteamID steamId))
             {
+                byte[] data = new byte[segment.Count];
+                Array.Copy(segment.Array, segment.Offset, data, 0, segment.Count);
                 Send(steamId, data, channelId);
             }
             else

@@ -1,3 +1,5 @@
+using System;
+
 namespace Mirror.FizzySteam
 {
     public interface IClient
@@ -9,6 +11,6 @@ namespace Mirror.FizzySteam
         void ReceiveData();
         void Disconnect();
         void FlushData();
-        void Send(byte[] data, int channelId);
+        void Send(ArraySegment<byte> segment, int channelId);
     }
 }
