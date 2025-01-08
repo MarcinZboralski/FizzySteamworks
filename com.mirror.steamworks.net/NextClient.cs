@@ -15,7 +15,7 @@ namespace Mirror.FizzySteam
 
         private TimeSpan ConnectionTimeout;
 
-        private event Action<byte[], int> OnReceivedData;
+        private event Action<ArraySegment<byte>, int> OnReceivedData;
         private event Action OnConnected;
         private event Action OnDisconnected;
         private Callback<SteamNetConnectionStatusChangedCallback_t> c_onConnectionChange = null;
@@ -40,7 +40,7 @@ namespace Mirror.FizzySteam
 
             c.OnConnected += () => transport.OnClientConnected.Invoke();
             c.OnDisconnected += () => transport.OnClientDisconnected.Invoke();
-            c.OnReceivedData += (data, ch) => transport.OnClientDataReceived.Invoke(new ArraySegment<byte>(data), ch);
+            c.OnReceivedData += (segment, channelId) => transport.OnClientDataReceived.Invoke(segment, channelId);
 
             try
             {
@@ -207,14 +207,14 @@ namespace Mirror.FizzySteam
             {
                 for (int i = 0; i < messageCount; i++)
                 {
-                    (byte[] data, int ch) = ProcessMessage(messagePtrs[i]);
+                    (var segment, int channelId) = ProcessMessage(messagePtrs[i]);
                     if (Connected)
                     {
-                        OnReceivedData(data, ch);
+                        OnReceivedData(segment, channelId);
                     }
                     else
                     {
-                        BufferedData.Add(() => OnReceivedData(data, ch));
+                        BufferedData.Add(() => OnReceivedData(segment, channelId));
                     }
                 }
             }

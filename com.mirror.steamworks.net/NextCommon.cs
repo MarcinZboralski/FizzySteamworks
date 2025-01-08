@@ -31,7 +31,7 @@ namespace Mirror.FizzySteam
 
             if (packetSize > MAX_PACKET_SIZE)
             {
-                Debug.LogError($"Attempted to send oversize packet with {segment.Count} bytes on channel with ID {channelId}.");
+                Debug.LogError($"Attempted to send oversize packet with {packetSize} bytes on channel with ID {channelId}.");
                 return EResult.k_EResultFail;
             }
 
@@ -54,17 +54,24 @@ namespace Mirror.FizzySteam
             return res;
         }
 
-        protected (byte[], int) ProcessMessage(IntPtr ptrs)
+        protected (ArraySegment<byte>, int) ProcessMessage(IntPtr ptrs)
         {
             SteamNetworkingMessage_t data = Marshal.PtrToStructure<SteamNetworkingMessage_t>(ptrs);
-            byte[] managedArray = new byte[data.m_cbSize];
-            Marshal.Copy(data.m_pData, managedArray, 0, data.m_cbSize);
+            int packetSize = data.m_cbSize;
 
+            // Not sure if this is a good way to handle oversize packets
+            //if (packetSize > MAX_PACKET_SIZE)
+            //{
+            //    Debug.LogWarning($"Attempted to process oversize packet with {packetSize} bytes. Receiving an unreliable packet of size zero.");
+            //    return (ArraySegment<byte>.Empty, Channels.Unreliable);
+            //}
+
+            Marshal.Copy(data.m_pData, buffer, 0, data.m_cbSize);
             SteamNetworkingMessage_t.Release(ptrs);
 
-            int channel = managedArray[managedArray.Length - 1];
-            Array.Resize(ref managedArray, managedArray.Length - 1);
-            return (managedArray, channel);
+            var segment = new ArraySegment<byte>(buffer, 0, packetSize - 1);
+            int channelId = buffer[packetSize - 1];
+            return (segment, channelId);
         }
 
         public virtual void Dispose()

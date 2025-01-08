@@ -9,7 +9,7 @@ namespace Mirror.FizzySteam
     public class NextServer : NextCommon, IServer
     {
         private event Action<int, string> OnConnectedWithAddress;
-        private event Action<int, byte[], int> OnReceivedData;
+        private event Action<int, ArraySegment<byte>, int> OnReceivedData;
         private event Action<int> OnDisconnected;
         private event Action<int, TransportError, string> OnReceivedError;
 
@@ -44,7 +44,7 @@ namespace Mirror.FizzySteam
 
             server.OnConnectedWithAddress += (id, addres) => transport.OnServerConnectedWithAddress.Invoke(id, addres);
             server.OnDisconnected += (id) => transport.OnServerDisconnected.Invoke(id);
-            server.OnReceivedData += (id, data, ch) => transport.OnServerDataReceived.Invoke(id, new ArraySegment<byte>(data), ch);
+            server.OnReceivedData += (id, segment, channelId) => transport.OnServerDataReceived.Invoke(id, segment, channelId);
             server.OnReceivedError += (id, error, reason) => transport.OnServerError.Invoke(id, error, reason);
 
             try
@@ -193,8 +193,8 @@ namespace Mirror.FizzySteam
                     {
                         for (int i = 0; i < messageCount; i++)
                         {
-                            (byte[] data, int ch) = ProcessMessage(messagePtrs[i]);
-                            OnReceivedData?.Invoke(connId, data, ch);
+                            (var segment, int channelId) = ProcessMessage(messagePtrs[i]);
+                            OnReceivedData?.Invoke(connId, segment, channelId);
                         }
                     }
                 }
