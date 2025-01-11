@@ -214,7 +214,12 @@ namespace Mirror.FizzySteam
                     }
                     else
                     {
-                        BufferedData.Add(() => OnReceivedData(segment, channelId));
+                        // Need to allocate new memory for these recieved messages because the main buffer will be overwritten by the buffered data is processed
+                        byte[] segmentCopy = new byte[segment.Count];
+                        Array.Copy(segment.Array, segment.Offset, segmentCopy, 0, segment.Count);
+                        int channelIdCopy = channelId;
+
+                        BufferedData.Add(() => OnReceivedData(segmentCopy, channelIdCopy));
                     }
                 }
             }
