@@ -1,9 +1,9 @@
 #if !DISABLESTEAMWORKS
-using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Steamworks;
 using UnityEngine;
 
 namespace Mirror.FizzySteam
@@ -15,7 +15,7 @@ namespace Mirror.FizzySteam
 
         private TimeSpan ConnectionTimeout;
 
-        private event Action<byte[], int> OnReceivedData;
+        private event Action<ArraySegment<byte>, int> OnReceivedData;
         private event Action OnConnected;
         private event Action OnDisconnected;
         private Callback<SteamNetConnectionStatusChangedCallback_t> c_onConnectionChange = null;
@@ -25,6 +25,8 @@ namespace Mirror.FizzySteam
         private CSteamID hostSteamID = CSteamID.Nil;
         private HSteamNetConnection HostConnection;
         private List<Action> BufferedData;
+
+        private readonly IntPtr[] messagePtrs = new IntPtr[MAX_MESSAGES];
 
         private NextClient(FizzySteamworks transport)
         {
@@ -38,7 +40,7 @@ namespace Mirror.FizzySteam
 
             c.OnConnected += () => transport.OnClientConnected.Invoke();
             c.OnDisconnected += () => transport.OnClientDisconnected.Invoke();
-            c.OnReceivedData += (data, ch) => transport.OnClientDataReceived.Invoke(new ArraySegment<byte>(data), ch);
+            c.OnReceivedData += (segment, channelId) => transport.OnClientDataReceived.Invoke(segment, channelId);
 
             try
             {
@@ -173,13 +175,15 @@ namespace Mirror.FizzySteam
             }
         }
 
-        protected void Dispose()
+        public override void Dispose()
         {
             if (c_onConnectionChange != null)
             {
                 c_onConnectionChange.Dispose();
                 c_onConnectionChange = null;
             }
+
+            base.Dispose();
         }
 
         private void InternalDisconnect()
@@ -192,31 +196,40 @@ namespace Mirror.FizzySteam
 
         public void ReceiveData()
         {
-            IntPtr[] ptrs = new IntPtr[MAX_MESSAGES];
-            int messageCount;
+            // This is probably unnessary
+            for (int i = 0; i < MAX_MESSAGES; i++)
+            {
+                messagePtrs[i] = IntPtr.Zero;
+            }
 
-            if ((messageCount = SteamNetworkingSockets.ReceiveMessagesOnConnection(HostConnection, ptrs, MAX_MESSAGES)) > 0)
+            int messageCount;
+            if ((messageCount = SteamNetworkingSockets.ReceiveMessagesOnConnection(HostConnection, messagePtrs, MAX_MESSAGES)) > 0)
             {
                 for (int i = 0; i < messageCount; i++)
                 {
-                    (byte[] data, int ch) = ProcessMessage(ptrs[i]);
+                    (var segment, int channelId) = ProcessMessage(messagePtrs[i]);
                     if (Connected)
                     {
-                        OnReceivedData(data, ch);
+                        OnReceivedData(segment, channelId);
                     }
                     else
                     {
-                        BufferedData.Add(() => OnReceivedData(data, ch));
+                        // Need to allocate new memory for these recieved messages because the main buffer will be overwritten by the buffered data is processed
+                        byte[] segmentCopy = new byte[segment.Count];
+                        Array.Copy(segment.Array, segment.Offset, segmentCopy, 0, segment.Count);
+                        int channelIdCopy = channelId;
+
+                        BufferedData.Add(() => OnReceivedData(segmentCopy, channelIdCopy));
                     }
                 }
             }
         }
 
-        public void Send(byte[] data, int channelId)
+        public void Send(ArraySegment<byte> segment, int channelId)
         {
             try
             {
-                EResult res = SendSocket(HostConnection, data, channelId);
+                EResult res = SendSocket(HostConnection, segment, channelId);
 
                 if (res == EResult.k_EResultNoConnection || res == EResult.k_EResultInvalidParam)
                 {

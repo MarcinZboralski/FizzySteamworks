@@ -1,6 +1,6 @@
 #if !DISABLESTEAMWORKS
-using Steamworks;
 using System;
+using Steamworks;
 using UnityEngine;
 
 namespace Mirror.FizzySteam
@@ -117,9 +117,7 @@ namespace Mirror.FizzySteam
 
         public override void ClientSend(ArraySegment<byte> segment, int channelId)
         {
-            byte[] data = new byte[segment.Count];
-            Array.Copy(segment.Array, segment.Offset, data, 0, segment.Count);
-            client.Send(data, channelId);
+            client.Send(segment, channelId);
         }
 
         public override void ClientDisconnect()
@@ -202,9 +200,7 @@ namespace Mirror.FizzySteam
         {
             if (ServerActive())
             {
-                byte[] data = new byte[segment.Count];
-                Array.Copy(segment.Array, segment.Offset, data, 0, segment.Count);
-                server.Send(connectionId, data, channelId);
+                server.Send(connectionId, segment, channelId);
             }
         }
         public override void ServerDisconnect(int connectionId)
